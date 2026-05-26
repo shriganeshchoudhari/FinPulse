@@ -4,17 +4,36 @@ import { useStore, type MarketTick } from '../store/useStore';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/market-data';
 
-// Using a mock userId for the dashboard as authentication is mocked
-export const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
-
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+api.interceptors.request.use((config) => {
+  const token = useStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const authService = {
+  login: async (username: string, password: string) => {
+    const response = await api.post('/auth/login', { username, password });
+    return response.data;
+  },
+  register: async (username: string, email: string, password: string) => {
+    const response = await api.post('/auth/register', { username, email, password });
+    return response.data;
+  }
+};
+
+
+
 export const tradeService = {
   placeOrder: async (symbol: string, side: 'BUY' | 'SELL', quantity: number, price: number) => {
+    const userId = useStore.getState().userId;
     const response = await api.post('/trades', {
-      userId: MOCK_USER_ID,
+      userId,
       symbol,
       side,
       quantity,
@@ -24,23 +43,32 @@ export const tradeService = {
   },
   
   getUserTrades: async () => {
-    const response = await api.get(`/trades/user/${MOCK_USER_ID}`);
+    const userId = useStore.getState().userId;
+    const response = await api.get(`/trades/user/${userId}`);
     return response.data;
   }
 };
 
 export const walletService = {
   getWallet: async (currency: string) => {
-    const response = await api.get(`/wallets/user/${MOCK_USER_ID}/${currency}`);
+    const userId = useStore.getState().userId;
+    const response = await api.get(`/wallets/user/${userId}/${currency}`);
     return response.data;
   }
 };
 
 export const auditService = {
   getAuditLogs: async () => {
-    // Requires compliance role, mocked here assuming the backend allows it for local testing
-    // or you'd pass a JWT token.
-    const response = await api.get(`/compliance/audit/${MOCK_USER_ID}`);
+    const userId = useStore.getState().userId;
+    const response = await api.get(`/compliance/audit/${userId}`);
+    return response.data;
+  }
+};
+
+export const analyticsService = {
+  getPortfolio: async () => {
+    const userId = useStore.getState().userId;
+    const response = await api.get(`/analytics/portfolio/${userId}`);
     return response.data;
   }
 };

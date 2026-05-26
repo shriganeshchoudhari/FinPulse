@@ -1,22 +1,44 @@
 import React, { useEffect } from 'react';
+import { useStore } from './store/useStore';
 import MarketChart from './components/MarketChart';
 import TradePanel from './components/TradePanel';
 import WalletPanel from './components/WalletPanel';
 import AuditLogPanel from './components/AuditLogPanel';
+import LoginPanel from './components/LoginPanel';
+import PortfolioPanel from './components/PortfolioPanel';
 import { marketDataSocket } from './services/api';
-import { Activity } from 'lucide-react';
+import { Activity, LogOut } from 'lucide-react';
 import './index.css';
 
 const App: React.FC = () => {
+  const { token, setToken, setUserId } = useStore();
+
   useEffect(() => {
-    // Connect to WebSocket on mount
-    marketDataSocket.connect();
+    if (token) {
+      marketDataSocket.connect();
+    }
     
-    // Disconnect on unmount
     return () => {
       marketDataSocket.disconnect();
     };
-  }, []);
+  }, [token]);
+
+  const handleLogout = () => {
+    setToken(null);
+    setUserId(null);
+  };
+
+  if (!token) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', justifyContent: 'center' }}>
+         <h1 className="header-title" style={{ justifyContent: 'center', marginBottom: '24px' }}>
+          <Activity size={32} color="var(--accent-blue)" />
+          FinPulse
+        </h1>
+        <LoginPanel />
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-layout">
@@ -31,12 +53,18 @@ const App: React.FC = () => {
             <span className="live-indicator" style={{ marginRight: '8px' }}></span>
             SYSTEM ONLINE
           </div>
+          <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <LogOut size={16} /> Logout
+          </button>
         </div>
       </header>
       
       <div className="main-column">
         <MarketChart />
-        <AuditLogPanel />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <PortfolioPanel />
+          <AuditLogPanel />
+        </div>
       </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
