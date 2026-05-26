@@ -1,0 +1,33 @@
+backend:
+  replicaCount: 3
+  image:
+    repository: finpulse/backend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: finpulse/frontend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: LoadBalancer
+    port: 80
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi

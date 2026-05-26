@@ -1,0 +1,48 @@
+# network-policy.yaml
+# Production Security Network Policies for FinPulse
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-isolation-policy
+  namespace: finpulse
+spec:
+  podSelector:
+    matchLabels:
+      role: database # Targets database services (PostgreSQL, Redis)
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: finpulse-backend # Only permit ingress from backend pods
+    ports:
+    - protocol: TCP
+      port: 5432 # PostgreSQL port
+    - protocol: TCP
+      port: 6379 # Redis port
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-egress-policy
+  namespace: finpulse
+spec:
+  podSelector:
+    matchLabels:
+      app: finpulse-backend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          role: database
+    - podSelector:
+        matchLabels:
+          app: kafka-service
+  - to:
+    # Permit egress to external OAuth2 Identity issuers if needed
+    - ipBlock:
+        cidr: 0.0.0.0/0

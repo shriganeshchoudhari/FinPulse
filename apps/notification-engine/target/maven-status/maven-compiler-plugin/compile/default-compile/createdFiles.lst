@@ -1,0 +1,3 @@
+com\finpulse\notification\NotificationApplication.class
+com\finpulse\notification\WebSocketConfig.class
+com\finpulse\notification\KafkaEventConsumer.class

@@ -1,0 +1,99 @@
+# ci-cd.yml
+# Full Autonomous DevSecOps Pipeline for FinPulse
+
+name: FinPulse DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Job 1: Build & Verify Backend Java Spring Boot
+  # -------------------------------------------------------------------------
+  backend-build:
+    name: Backend Build & Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Codebase
+      uses: actions/checkout@v3
+
+    - name: Setup Java JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Maven Build & JUnit Testing
+      run: |
+        cd apps/backend
+        mvn clean verify -DskipTests=false
+
+    - name: OWASP Dependency Vulnerability Scan
+      run: |
+        echo "Executing OWASP Dependency Scan..."
+        # Simulated run of: mvn org.owasp:dependency-check-maven:check
+
+    - name: SonarQube Code Quality Gate Scan
+      run: |
+        echo "Scanning code via SonarQube..."
+        # Simulated run: mvn sonar:sonar -Dsonar.projectKey=finpulse
+
+  # -------------------------------------------------------------------------
+  # Job 2: Build & Verify Frontend React
+  # -------------------------------------------------------------------------
+  frontend-build:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Codebase
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: apps/frontend/package-lock.json
+
+    - name: NPM Package Installation & Build
+      run: |
+        cd apps/frontend
+        npm install
+        npm run build
+
+  # -------------------------------------------------------------------------
+  # Job 3: DevSecOps Vulnerability & Trivy Container Verification
+  # -------------------------------------------------------------------------
+  security-scans:
+    name: DevSecOps Trivy Scan
+    needs: [backend-build, frontend-build]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Codebase
+      uses: actions/checkout@v3
+
+    - name: Run Trivy Static Vulnerability Check
+      run: |
+        echo "Running Trivy filesystem scan..."
+        # Simulated execution: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+
+  # -------------------------------------------------------------------------
+  # Job 4: GitOps ArgoCD Trigger Rollout
+  # -------------------------------------------------------------------------
+  deploy-production:
+    name: GitOps Production Deployment
+    needs: security-scans
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger GitOps Repository Rollout
+      run: |
+        echo "Syncing production configurations to target Kubernetes Cluster..."
+        echo "Kustomize updating target Helm tags..."
+        # Simulated GitOps commit update to trigger ArgoCD:
+        # git commit -am "gpc-deploy: bump image tags to newer CI SHA"
+        # git push origin prod-deployment

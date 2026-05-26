@@ -1,0 +1,3 @@
+com\finpulse\simulator\MarketSimulatorApplication.class
+com\finpulse\simulator\TickPublisher$MarketTick.class
+com\finpulse\simulator\TickPublisher.class
