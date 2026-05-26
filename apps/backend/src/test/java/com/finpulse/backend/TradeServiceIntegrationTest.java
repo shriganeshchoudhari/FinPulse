@@ -43,11 +43,10 @@ public class TradeServiceIntegrationTest {
     @Test
     void shouldExecuteTradeAndSaveToDatabase() {
         Trade trade = new Trade();
-        trade.setUserId(1L);
+        trade.setUserId(java.util.UUID.randomUUID());
         trade.setSymbol("BTC/USD");
-        trade.setType("BUY");
-        trade.setOrderType("MARKET");
-        trade.setAmount(new BigDecimal("0.5"));
+        trade.setSide("BUY");
+        trade.setQuantity(new BigDecimal("0.5"));
         trade.setPrice(new BigDecimal("45000.00"));
 
         StepVerifier.create(

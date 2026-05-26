@@ -1,0 +1,12 @@
+# FinPulse Backend - Development Profile
+# Activated with: --spring.profiles.active=dev
+
+logging:
+  level:
+    com.finpulse: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.springframework.security: DEBUG
+
+spring:
+  flyway:
+    clean-disabled: false

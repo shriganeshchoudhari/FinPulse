@@ -1,12 +1,9 @@
-package com.finpulse.trade;
+package com.finpulse.backend.controller.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,17 +13,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("trades")
-public class Trade {
-    @Id
+public class TradeResponse {
     private UUID id;
-    @Column("user_id")
     private UUID userId;
     private String symbol;
-    private String side; // BUY, SELL
+    private String side;
     private BigDecimal quantity;
     private BigDecimal price;
-    private String status; // PENDING, COMPLETED, FAILED
-    @Column("created_at")
+    private String status;
     private Instant createdAt;
 }

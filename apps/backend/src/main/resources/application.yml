@@ -1,35 +1,87 @@
+# FinPulse Backend - Base Configuration
 spring:
   application:
     name: finpulse-backend
+  main:
+    allow-bean-definition-overriding: true
+
+  # R2DBC Reactive PostgreSQL
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/finpulse
-    username: postgres
-    password: password
+    url: ${DB_URL:r2dbc:postgresql://localhost:5432/finpulse}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
     pool:
       initial-size: 10
       max-size: 100
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+  # Flyway Database Migrations (uses JDBC, not R2DBC)
+  flyway:
+    enabled: true
+    url: ${FLYWAY_URL:jdbc:postgresql://localhost:5432/finpulse}
+    user: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # Kafka Event Streaming
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: finpulse-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.trusted.packages: "com.finpulse.backend.domain.event"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-server:
-  port: 8080
+  # Redis Cache & Token Blacklist
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
 
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:default-secret-key-must-be-very-long-and-secure-32-chars}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# Actuator & Observability
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
   metrics:
     export:
       prometheus:
         enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# Logging
+logging:
+  level:
+    com.finpulse: ${LOG_LEVEL:DEBUG}
+    org.springframework.r2dbc: INFO
+    org.springframework.security: INFO

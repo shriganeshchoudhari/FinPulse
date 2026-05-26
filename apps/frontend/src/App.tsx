@@ -1,40 +1,50 @@
-import { Sidebar } from './components/Sidebar';
-import { Chart } from './components/Chart';
-import { OrderBook } from './components/OrderBook';
-import { WebSocketProvider } from './providers/WebSocketProvider';
+import React, { useEffect } from 'react';
+import MarketChart from './components/MarketChart';
+import TradePanel from './components/TradePanel';
+import WalletPanel from './components/WalletPanel';
+import AuditLogPanel from './components/AuditLogPanel';
+import { marketDataSocket } from './services/api';
+import { Activity } from 'lucide-react';
+import './index.css';
 
-function App() {
+const App: React.FC = () => {
+  useEffect(() => {
+    // Connect to WebSocket on mount
+    marketDataSocket.connect();
+    
+    // Disconnect on unmount
+    return () => {
+      marketDataSocket.disconnect();
+    };
+  }, []);
+
   return (
-    <WebSocketProvider>
-      <div className="dashboard-container">
-        <header className="header">
-          <h1>BTC/USD <span style={{fontSize: '1rem', color: 'var(--color-up)', marginLeft: '10px'}}>+2.45%</span></h1>
-        </header>
-        
-        <Sidebar />
-        
-        <main className="main-content">
-          <Chart />
-          
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <div style={{ flex: 1, backgroundColor: 'var(--bg-tertiary)', padding: '20px', borderRadius: '8px' }}>
-              <h3>Place Order</h3>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <button className="btn" style={{flex: 1, backgroundColor: 'var(--color-up)'}}>Buy</button>
-                <button className="btn" style={{flex: 1, backgroundColor: 'var(--color-down)'}}>Sell</button>
-              </div>
-            </div>
-            <div style={{ flex: 1, backgroundColor: 'var(--bg-tertiary)', padding: '20px', borderRadius: '8px' }}>
-              <h3>Recent Trades</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>No recent trades.</p>
-            </div>
+    <div className="dashboard-layout">
+      <header className="header">
+        <h1 className="header-title">
+          <Activity size={32} color="var(--accent-blue)" />
+          FinPulse
+        </h1>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Enterprise HF Trading System</span>
+          <div style={{ background: 'var(--bg-tertiary)', padding: '8px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', border: '1px solid var(--glass-border)' }}>
+            <span className="live-indicator" style={{ marginRight: '8px' }}></span>
+            SYSTEM ONLINE
           </div>
-        </main>
-
-        <OrderBook />
+        </div>
+      </header>
+      
+      <div className="main-column">
+        <MarketChart />
+        <AuditLogPanel />
       </div>
-    </WebSocketProvider>
-  )
-}
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <WalletPanel />
+        <TradePanel />
+      </div>
+    </div>
+  );
+};
 
-export default App
+export default App;

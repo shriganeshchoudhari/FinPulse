@@ -6,17 +6,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Sinks;
 
 @Service
 @RequiredArgsConstructor
 public class MarketDataConsumer {
     private static final Logger logger = LoggerFactory.getLogger(MarketDataConsumer.class);
 
-    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    private final Sinks.Many<MarketTickEvent> marketTickSink;
 
     @KafkaListener(topics = "market.ticks", groupId = "finpulse-group")
     public void consumeMarketTick(MarketTickEvent event) {
         logger.debug("Received market tick: {} at price {}", event.getSymbol(), event.getPrice());
-        messagingTemplate.convertAndSend("/topic/ticks", event);
+        marketTickSink.tryEmitNext(event);
     }
 }

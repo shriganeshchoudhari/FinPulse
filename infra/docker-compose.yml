@@ -1,6 +1,8 @@
-version: '3.8'
+# FinPulse Infrastructure Stack
+# Usage: docker compose -f infra/docker-compose.yml up -d
 
 services:
+  # --- Message Broker ---
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
     container_name: finpulse-zookeeper
@@ -11,12 +13,22 @@ services:
       - "2181:2181"
     networks:
       - finpulse-network
+    healthcheck:
+      test: echo srvr | nc localhost 2181 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: finpulse-kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
@@ -27,15 +39,27 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
     networks:
       - finpulse-network
+    healthcheck:
+      test: kafka-topics --bootstrap-server localhost:9092 --list || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
+  # --- Database ---
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
+    image: timescale/timescaledb:2.17.2-pg14
     container_name: finpulse-timescaledb
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
       POSTGRES_DB: finpulse
     ports:
       - "5432:5432"
@@ -43,14 +67,57 @@ services:
       - timescaledb-data:/var/lib/postgresql/data
     networks:
       - finpulse-network
+    healthcheck:
+      test: pg_isready -U postgres -d finpulse
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
+  # --- Cache & Token Store ---
   redis:
     image: redis:7-alpine
     container_name: finpulse-redis
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
     networks:
       - finpulse-network
+    healthcheck:
+      test: redis-cli ping | grep PONG
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # --- Kafka UI for Development Debugging ---
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: finpulse-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: finpulse-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    networks:
+      - finpulse-network
+    profiles:
+      - dev
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
 networks:
   finpulse-network:
@@ -58,3 +125,4 @@ networks:
 
 volumes:
   timescaledb-data:
+  redis-data:

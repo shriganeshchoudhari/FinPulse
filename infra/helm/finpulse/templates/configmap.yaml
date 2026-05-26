@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finpulse-backend-config
+  labels:
+    app: finpulse-backend
+data:
+  DB_URL: {{ .Values.backend.config.dbUrl }}
+  FLYWAY_URL: {{ .Values.backend.config.flywayUrl }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.backend.config.kafkaServers }}
+  REDIS_HOST: {{ .Values.backend.config.redisHost }}
+  REDIS_PORT: {{ .Values.backend.config.redisPort | quote }}
+  SPRING_PROFILES_ACTIVE: "prod"

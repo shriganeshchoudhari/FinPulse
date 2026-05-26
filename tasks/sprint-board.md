@@ -1,31 +1,17 @@
-# FinPulse Sprint Board - Sprint 1 (Foundation & Database Core)
+# FinPulse Sprint Board
 
-## 📋 Board Layout
+## TO DO
+- [ ] Set up ArgoCD for automated GitOps deployment to EKS and GKE.
+- [ ] Implement end-to-end integration tests for the Kafka CQRS pipeline.
+- [ ] Build the frontend dashboard using React/Next.js.
 
-| To Do | In Progress | In Review | Done |
-| :--- | :--- | :--- | :--- |
-| [FIN-201] Flyway Schema Migrations | [FIN-102] Draft PRD & TDD Docs | | [FIN-101] Create Workspace Folders |
-| [FIN-202] Setup TimescaleDB Hypertables | [FIN-103] Define ADRs | | [FIN-104] Init Task Management Files |
-| [FIN-301] User Authentication Service | | | |
-| [FIN-302] Wallet & Ledger Service ACID | | | |
-| [FIN-303] Market Tick Simulator | | | |
+## IN PROGRESS
+- [ ] Verifying Phase 1 & 2 fixes locally (Docker Compose + Maven Build).
 
----
-
-## 🎫 Ticket Details
-
-### Completed Tasks
-- **[FIN-101] Create Workspace Folders**
-  - **Assignee:** DevOps / Developer Agent
-  - **Description:** Set up apps, infra, docs, tests, and agents folders.
-- **[FIN-104] Init Task Management Files**
-  - **Assignee:** Product Manager Agent
-  - **Description:** Build `task-tracker.md`, `sprint-board.md`, and `backlog.md`.
-
-### In Progress
-- **[FIN-102] Draft PRD & TDD Docs**
-  - **Assignee:** Product Manager / Architect Agent
-  - **Description:** Write core specs detailing functional specs, APIs, and CQRS patterns.
-- **[FIN-103] Define ADRs**
-  - **Assignee:** Architect Agent
-  - **Description:** Document design decisions for Kafka, TimescaleDB, WebFlux, and Multi-Agent setups.
+## DONE
+- [x] Fix Spring WebFlux / WebSocket Servlet conflicts.
+- [x] Align Java Domain Models with DB Schema (UUIDs).
+- [x] Implement Kafka Event Sourcing for Trades.
+- [x] Create dedicated Audit Service (ComplianceEventConsumer).
+- [x] Harden Terraform and Helm configurations for production.
+- [x] Update documentation (PRD, TDD, ADRs) to reflect microservices transition.

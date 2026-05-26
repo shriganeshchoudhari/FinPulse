@@ -78,7 +78,7 @@ public class SecurityConfig {
                     }
                 })
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/api/v1/auth/**", "/actuator/**").permitAll()
+                        .pathMatchers("/api/v1/auth/**", "/actuator/**", "/ws/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .pathMatchers("/api/v1/compliance/**").hasAuthority("ROLE_COMPLIANCE")
                         .anyExchange().authenticated()
                 )

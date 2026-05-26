@@ -1,33 +1,45 @@
+# FinPulse Helm Chart Values
+
+global:
+  environment: "prod"
+
 backend:
   replicaCount: 3
   image:
     repository: finpulse/backend
     pullPolicy: IfNotPresent
     tag: "latest"
-  service:
-    type: ClusterIP
-    port: 8080
+  
   resources:
     limits:
       cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 500m
-      memory: 512Mi
-
-frontend:
-  replicaCount: 2
-  image:
-    repository: finpulse/frontend
-    pullPolicy: IfNotPresent
-    tag: "latest"
-  service:
-    type: LoadBalancer
-    port: 80
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
+      memory: 1024Mi
     requests:
       cpu: 250m
-      memory: 256Mi
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: api.finpulse.local
+        paths:
+          - path: /
+            pathType: Prefix
+
+  # Added database and infrastructure configurations
+  config:
+    dbUrl: "r2dbc:postgresql://finpulse-timescaledb:5432/finpulse"
+    flywayUrl: "jdbc:postgresql://finpulse-timescaledb:5432/finpulse"
+    kafkaServers: "finpulse-kafka:9092"
+    redisHost: "finpulse-redis"
+    redisPort: 6379
