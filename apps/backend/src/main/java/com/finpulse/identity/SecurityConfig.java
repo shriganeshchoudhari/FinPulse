@@ -58,7 +58,7 @@ public class SecurityConfig {
                                 // Validate if the JTI has been revoked in Redis
                                 return redisTemplate.hasKey("blacklist:" + jti)
                                         .flatMap(isBlacklisted -> {
-                                            if (isBlacklisted || jwtUtil.isExpired(claims)) {
+                                            if (Boolean.TRUE.equals(isBlacklisted) || jwtUtil.isExpired(claims)) {
                                                 return Mono.empty();
                                             }
                                             

@@ -1,11 +1,10 @@
 package com.finpulse.backend.domain.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.envers.Audited;
-import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,9 +15,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "wallets")
-@Audited
-public class Wallet {
+@Table(name = "ledger_entries")
+public class LedgerEntry {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
@@ -28,11 +26,14 @@ public class Wallet {
 
     private String currency;
 
-    private BigDecimal balance;
+    private BigDecimal amount;
 
-    @Column(name = "locked_balance")
-    private BigDecimal lockedBalance;
+    @Column(name = "transaction_type")
+    private String transactionType; // CREDIT, DEBIT
 
-    @Column(name = "updated_at")
-    private Instant updatedAt;
+    @Column(name = "reference_id")
+    private UUID referenceId; // e.g., trade_id
+
+    @Column(name = "created_at")
+    private Instant createdAt;
 }

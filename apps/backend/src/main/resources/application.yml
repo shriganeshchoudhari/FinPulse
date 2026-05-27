@@ -16,6 +16,22 @@ spring:
       max-idle-time: 30m
       validation-query: SELECT 1
 
+  # JDBC DataSource for JPA / Hibernate Envers
+  datasource:
+    url: ${FLYWAY_URL:jdbc:postgresql://localhost:5432/finpulse}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        envers:
+          audit_table_suffix: _AUD
+
   # Flyway Database Migrations (uses JDBC, not R2DBC)
   flyway:
     enabled: true

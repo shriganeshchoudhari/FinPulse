@@ -6,7 +6,9 @@ import WalletPanel from './components/WalletPanel';
 import AuditLogPanel from './components/AuditLogPanel';
 import LoginPanel from './components/LoginPanel';
 import PortfolioPanel from './components/PortfolioPanel';
-import { marketDataSocket } from './services/api';
+import ComplianceDashboard from './components/ComplianceDashboard';
+import NetWorthChart from './components/NetWorthChart';
+import { marketDataSocket, authService } from './services/api';
 import { Activity, LogOut } from 'lucide-react';
 import './index.css';
 
@@ -23,7 +25,12 @@ const App: React.FC = () => {
     };
   }, [token]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (e) {
+      console.error('Logout failed', e);
+    }
     setToken(null);
     setUserId(null);
   };
@@ -39,6 +46,18 @@ const App: React.FC = () => {
       </div>
     );
   }
+
+  // Decode JWT to get role (if exists)
+  const getUserRole = () => {
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role || null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const role = getUserRole();
 
   return (
     <div className="dashboard-layout">
@@ -60,7 +79,9 @@ const App: React.FC = () => {
       </header>
       
       <div className="main-column">
+        {role === 'ROLE_COMPLIANCE_OFFICER' && <ComplianceDashboard />}
         <MarketChart />
+        <NetWorthChart />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <PortfolioPanel />
           <AuditLogPanel />

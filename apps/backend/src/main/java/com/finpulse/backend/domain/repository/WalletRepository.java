@@ -1,18 +1,22 @@
 package com.finpulse.backend.domain.repository;
 
 import com.finpulse.backend.domain.model.Wallet;
-import org.springframework.data.r2dbc.repository.R2dbcRepository;
-import org.springframework.data.r2dbc.repository.Query;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-public interface WalletRepository extends R2dbcRepository<Wallet, UUID> {
-    Flux<Wallet> findByUserId(UUID userId);
+public interface WalletRepository extends JpaRepository<Wallet, UUID> {
+    List<Wallet> findByUserId(UUID userId);
     
-    @Query("SELECT * FROM wallets WHERE user_id = :userId AND currency = :currency FOR UPDATE")
-    Mono<Wallet> findByUserIdAndCurrencyForUpdate(UUID userId, String currency);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT w FROM Wallet w WHERE w.userId = :userId AND w.currency = :currency")
+    Optional<Wallet> findByUserIdAndCurrencyForUpdate(@Param("userId") UUID userId, @Param("currency") String currency);
 
-    Mono<Wallet> findByUserIdAndCurrency(UUID userId, String currency);
+    Optional<Wallet> findByUserIdAndCurrency(UUID userId, String currency);
 }

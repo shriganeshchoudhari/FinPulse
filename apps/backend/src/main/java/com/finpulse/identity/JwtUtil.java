@@ -17,23 +17,34 @@ import java.util.UUID;
 public class JwtUtil {
 
     private final SecretKey secretKey;
-    private final long expirationTimeMs;
+    private final long accessTokenExpirationMs;
+    private final long refreshTokenExpirationMs;
 
     public JwtUtil(
             @Value("${jwt.secret:default-secret-key-must-be-very-long-and-secure-32-chars}") String secret,
-            @Value("${jwt.expiration:86400000}") long expirationTimeMs) {
+            @Value("${jwt.access.expiration:900000}") long accessTokenExpirationMs,
+            @Value("${jwt.refresh.expiration:604800000}") long refreshTokenExpirationMs) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationTimeMs = expirationTimeMs;
+        this.accessTokenExpirationMs = accessTokenExpirationMs;
+        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 
-    public String generateToken(User user, String role) {
+    public String generateAccessToken(User user, String role) {
+        return generateToken(user, role, accessTokenExpirationMs);
+    }
+
+    public String generateRefreshToken(User user, String role) {
+        return generateToken(user, role, refreshTokenExpirationMs);
+    }
+
+    private String generateToken(User user, String role, long expirationMs) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("email", user.getEmail());
         claims.put("jti", UUID.randomUUID().toString());
 
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + expirationTimeMs);
+        Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
                 .setClaims(claims)

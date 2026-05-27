@@ -4,9 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import org.hibernate.envers.Audited;
+import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -15,16 +14,23 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("users")
+@Entity
+@Table(name = "users")
+@Audited
 public class User {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
+    
     private String username;
     private String email;
-    @Column("password_hash")
+    
+    @Column(name = "password_hash")
     private String passwordHash;
-    @Column("kyc_status")
+    
+    @Column(name = "kyc_status")
     private String kycStatus; // PENDING, APPROVED, REJECTED
-    @Column("created_at")
+    
+    @Column(name = "created_at")
     private Instant createdAt;
 }

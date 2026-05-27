@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface MarketTick {
   symbol: string;
   price: number;
+  volume?: number;
   timestamp: string;
 }
 
