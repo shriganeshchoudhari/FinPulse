@@ -17,28 +17,28 @@ END $$;
 -- =========================================================================
 -- 1. Identity & Access Control Tables
 -- =========================================================================
-CREATE TABLE IF NOT EXISTS roles (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
-);
-
-INSERT INTO roles (name) VALUES ('ROLE_USER'), ('ROLE_ADMIN'), ('ROLE_COMPLIANCE')
-ON CONFLICT (name) DO NOTHING;
-
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(100) UNIQUE NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'ROLE_USER' CHECK (role IN ('ROLE_USER', 'ROLE_ANALYST', 'ROLE_AUDITOR', 'ROLE_ADMIN')),
     kyc_status VARCHAR(50) DEFAULT 'PENDING' CHECK (kyc_status IN ('PENDING', 'APPROVED', 'REJECTED')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS user_roles (
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, role_id)
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(512) NOT NULL UNIQUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens (user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens (token);
 
 -- =========================================================================
 -- 2. Wallet & Balance Ledger Tables
@@ -105,8 +105,8 @@ END $$;
 -- 5. Immutable Audit Logs & Alerting
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS audit_logs (
-    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    id UUID NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id UUID NOT NULL DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     action VARCHAR(100) NOT NULL,
     details JSONB NOT NULL
@@ -120,8 +120,8 @@ BEGIN
 END $$;
 
 CREATE TABLE IF NOT EXISTS compliance_events (
-    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    event_id UUID NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    event_id UUID NOT NULL DEFAULT gen_random_uuid(),
     severity VARCHAR(20) NOT NULL CHECK (severity IN ('INFO', 'WARNING', 'CRITICAL')),
     rule_id VARCHAR(50) NOT NULL,
     payload JSONB NOT NULL
@@ -143,7 +143,60 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- =========================================================================
--- 6. Advanced Performance Indexing & Protection Triggers
+-- 6. Views, Materialized Views, and Continuous Aggregates
+-- =========================================================================
+
+-- Materialized view for portfolio summary
+CREATE MATERIALIZED VIEW IF NOT EXISTS portfolio_summary AS
+SELECT
+    pa.user_id,
+    pa.symbol,
+    pa.quantity,
+    pa.avg_price AS avg_entry_price,
+    pa.quantity * pa.avg_price AS cost_basis,
+    pa.updated_at AS last_updated
+FROM portfolio_assets pa
+WHERE pa.quantity > 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolio_summary_user_symbol
+    ON portfolio_summary (user_id, symbol);
+
+-- Continuous aggregate or standard view for OHLCV candles
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'market_ticks_1m') THEN
+            EXECUTE 'CREATE MATERIALIZED VIEW market_ticks_1m WITH (timescaledb.continuous) AS
+                     SELECT time_bucket(''1 minute'', timestamp) AS bucket,
+                            symbol,
+                            first(price, timestamp) AS open,
+                            max(price) AS high,
+                            min(price) AS low,
+                            last(price, timestamp) AS close,
+                            sum(volume) AS volume
+                     FROM market_ticks
+                     GROUP BY bucket, symbol WITH NO DATA;';
+            PERFORM add_continuous_aggregate_policy('market_ticks_1m',
+                start_offset => INTERVAL '1 hour',
+                end_offset => INTERVAL '1 minute',
+                schedule_interval => INTERVAL '1 minute');
+        END IF;
+    ELSE
+        EXECUTE 'CREATE OR REPLACE VIEW market_ticks_1m AS
+                 SELECT date_trunc(''minute'', timestamp) AS bucket,
+                        symbol,
+                        (array_agg(price ORDER BY timestamp))[1] AS open,
+                        max(price) AS high,
+                        min(price) AS low,
+                        (array_agg(price ORDER BY timestamp DESC))[1] AS close,
+                        sum(volume) AS volume
+                 FROM market_ticks
+                 GROUP BY date_trunc(''minute'', timestamp), symbol;';
+    END IF;
+END $$;
+
+-- =========================================================================
+-- 7. Advanced Performance Indexing & Protection Triggers
 -- =========================================================================
 
 -- Composite Index for Portfolio performance retrievals

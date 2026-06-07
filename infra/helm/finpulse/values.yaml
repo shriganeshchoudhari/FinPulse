@@ -43,3 +43,45 @@ backend:
     kafkaServers: "finpulse-kafka:9092"
     redisHost: "finpulse-redis"
     redisPort: 6379
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: finpulse/frontend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+simulator:
+  replicaCount: 1
+  image:
+    repository: finpulse/market-simulator
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+notifications:
+  replicaCount: 2
+  image:
+    repository: finpulse/notification-engine
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi

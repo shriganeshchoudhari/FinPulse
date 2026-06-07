@@ -33,31 +33,32 @@ public class AuthController {
         return Mono.fromCallable(() -> userRepository.findByUsername(request.getUsername()))
                 .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
                 .flatMap(existing -> existing.isPresent() 
-                        ? Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).<AuthResponse>build())
-                        : Mono.fromCallable(() -> userRepository.save(User.builder()
-                                        .username(request.getUsername())
-                                        .email(request.getEmail())
-                                        .passwordHash(passwordEncoder.encode(request.getPassword()))
-                                        .kycStatus("PENDING")
-                                        .createdAt(Instant.now())
-                                        .build()))
-                                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
-                                .map(savedUser -> {
-                                    String accessToken = jwtUtil.generateAccessToken(savedUser, "ROLE_USER");
-                                    String refreshToken = jwtUtil.generateRefreshToken(savedUser, "ROLE_USER");
-                                    
-                                    ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                                            .httpOnly(true)
-                                            .secure(true)
-                                            .sameSite("Strict")
-                                            .path("/")
-                                            .maxAge(Duration.ofDays(7))
-                                            .build();
+                         ? Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).<AuthResponse>build())
+                         : Mono.fromCallable(() -> userRepository.save(User.builder()
+                                         .username(request.getUsername())
+                                         .email(request.getEmail())
+                                         .passwordHash(passwordEncoder.encode(request.getPassword()))
+                                         .kycStatus("PENDING")
+                                         .role("ROLE_USER")
+                                         .createdAt(Instant.now())
+                                         .build()))
+                                 .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                 .map(savedUser -> {
+                                     String accessToken = jwtUtil.generateAccessToken(savedUser, savedUser.getRole());
+                                     String refreshToken = jwtUtil.generateRefreshToken(savedUser, savedUser.getRole());
+                                     
+                                     ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                                             .httpOnly(true)
+                                             .secure(true)
+                                             .sameSite("Strict")
+                                             .path("/")
+                                             .maxAge(Duration.ofDays(7))
+                                             .build();
 
-                                    return ResponseEntity.ok()
-                                            .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                                            .body(new AuthResponse(accessToken, savedUser.getUsername(), "ROLE_USER"));
-                                })
+                                     return ResponseEntity.ok()
+                                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                                             .body(new AuthResponse(accessToken, savedUser.getUsername(), savedUser.getRole()));
+                                 })
                 );
     }
 
@@ -68,20 +69,20 @@ public class AuthController {
                 .flatMap(optUser -> optUser.map(Mono::just).orElseGet(Mono::empty))
                 .filter(user -> passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
                 .map(user -> {
-                    String accessToken = jwtUtil.generateAccessToken(user, "ROLE_USER");
-                    String refreshToken = jwtUtil.generateRefreshToken(user, "ROLE_USER");
+                    String accessToken = jwtUtil.generateAccessToken(user, user.getRole());
+                    String refreshToken = jwtUtil.generateRefreshToken(user, user.getRole());
                     
                     ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                            .httpOnly(true)
-                            .secure(true)
-                            .sameSite("Strict")
-                            .path("/")
-                            .maxAge(Duration.ofDays(7))
-                            .build();
+                             .httpOnly(true)
+                             .secure(true)
+                             .sameSite("Strict")
+                             .path("/")
+                             .maxAge(Duration.ofDays(7))
+                             .build();
 
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                            .body(new AuthResponse(accessToken, user.getUsername(), "ROLE_USER"));
+                            .body(new AuthResponse(accessToken, user.getUsername(), user.getRole()));
                 })
                 .defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
@@ -100,13 +101,12 @@ public class AuthController {
                     return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).<AuthResponse>build());
                 }
                 String username = jwtUtil.getUsername(claims);
-                String role = jwtUtil.getRole(claims);
                 return Mono.fromCallable(() -> userRepository.findByUsername(username))
                         .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
                         .flatMap(optUser -> optUser.map(Mono::just).orElseGet(Mono::empty))
                         .map(user -> {
-                            String newAccessToken = jwtUtil.generateAccessToken(user, role);
-                            return ResponseEntity.ok(new AuthResponse(newAccessToken, user.getUsername(), role));
+                            String newAccessToken = jwtUtil.generateAccessToken(user, user.getRole());
+                            return ResponseEntity.ok(new AuthResponse(newAccessToken, user.getUsername(), user.getRole()));
                         });
             });
         } catch (Exception e) {

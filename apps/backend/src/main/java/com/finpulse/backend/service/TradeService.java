@@ -23,7 +23,7 @@ public class TradeService {
     private final TradeRepository tradeRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Transactional
+    @Transactional("connectionFactoryTransactionManager")
     public Mono<Trade> executeTrade(Trade trade) {
         trade.setCreatedAt(Instant.now());
         trade.setStatus("PENDING");

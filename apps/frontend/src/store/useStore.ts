@@ -41,15 +41,21 @@ export interface Portfolio {
 interface FinPulseState {
   token: string | null;
   userId: string | null;
+  currentPage: string;
+  role: string | null;
+  kycStatus: string;
   marketData: Record<string, MarketTick[]>;
   latestPrices: Record<string, number>;
   wallet: Wallet | null;
   portfolio: Portfolio | null;
   trades: Trade[];
   auditLogs: AuditLog[];
-  
+
   setToken: (token: string | null) => void;
   setUserId: (id: string | null) => void;
+  navigateTo: (page: string) => void;
+  setRole: (role: string | null) => void;
+  setKycStatus: (status: string) => void;
   addMarketTick: (tick: MarketTick) => void;
   setWallet: (wallet: Wallet) => void;
   setPortfolio: (portfolio: Portfolio) => void;
@@ -60,6 +66,9 @@ interface FinPulseState {
 export const useStore = create<FinPulseState>((set) => ({
   token: localStorage.getItem('token'),
   userId: localStorage.getItem('userId'),
+  currentPage: 'dashboard',
+  role: null,
+  kycStatus: 'PENDING',
   marketData: {},
   latestPrices: {},
   wallet: null,
@@ -72,32 +81,37 @@ export const useStore = create<FinPulseState>((set) => ({
     else localStorage.removeItem('token');
     set({ token });
   },
-  
+
   setUserId: (userId) => {
     if (userId) localStorage.setItem('userId', userId);
     else localStorage.removeItem('userId');
     set({ userId });
   },
 
-  addMarketTick: (tick) => set((state) => {
-    const symbolData = state.marketData[tick.symbol] || [];
-    // Keep last 100 ticks for chart performance
-    const newSymbolData = [...symbolData, tick].slice(-100);
-    
-    return {
-      marketData: {
-        ...state.marketData,
-        [tick.symbol]: newSymbolData
-      },
-      latestPrices: {
-        ...state.latestPrices,
-        [tick.symbol]: tick.price
-      }
-    };
-  }),
-  
+  navigateTo: (page) => set({ currentPage: page }),
+
+  setRole: (role) => set({ role }),
+
+  setKycStatus: (kycStatus) => set({ kycStatus }),
+
+  addMarketTick: (tick) =>
+    set((state) => {
+      const symbolData = state.marketData[tick.symbol] || [];
+      const newSymbolData = [...symbolData, tick].slice(-100);
+      return {
+        marketData: {
+          ...state.marketData,
+          [tick.symbol]: newSymbolData,
+        },
+        latestPrices: {
+          ...state.latestPrices,
+          [tick.symbol]: tick.price,
+        },
+      };
+    }),
+
   setWallet: (wallet) => set({ wallet }),
   setPortfolio: (portfolio) => set({ portfolio }),
   setTrades: (trades) => set({ trades }),
-  setAuditLogs: (auditLogs) => set({ auditLogs })
+  setAuditLogs: (auditLogs) => set({ auditLogs }),
 }));

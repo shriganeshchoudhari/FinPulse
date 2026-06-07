@@ -25,7 +25,7 @@ public class WalletService {
     @org.springframework.context.annotation.Lazy
     private WalletService self;
 
-    @Transactional
+    @Transactional("transactionManager")
     public Wallet doDebit(UUID userId, String currency, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than zero");
@@ -49,7 +49,7 @@ public class WalletService {
         return wallet;
     }
 
-    @Transactional
+    @Transactional("transactionManager")
     public Wallet doCredit(UUID userId, String currency, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than zero");

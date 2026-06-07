@@ -37,7 +37,7 @@ public class MarketSimulatorService {
                         .timestamp(Instant.now().toEpochMilli())
                         .build();
 
-                kafkaTemplate.send("market-ticks", symbol, event);
+                kafkaTemplate.send("market.ticks", symbol, event);
                 log.debug("Simulated tick published for {}: {}", symbol, price);
             }
         });

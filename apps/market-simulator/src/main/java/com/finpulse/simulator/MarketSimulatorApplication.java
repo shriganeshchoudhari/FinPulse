@@ -29,13 +29,17 @@ public class MarketSimulatorApplication {
 
 @Slf4j
 @Component
-@AllArgsConstructor
 class TickPublisher implements CommandLineRunner {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    
-    @Value("${simulator.delay-ms:100}")
     private final long delayMs;
+
+    public TickPublisher(
+            KafkaTemplate<String, Object> kafkaTemplate,
+            @Value("${simulator.delay-ms:100}") long delayMs) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.delayMs = delayMs;
+    }
 
     @Override
     public void run(String... args) throws Exception {
@@ -60,13 +64,13 @@ class TickPublisher implements CommandLineRunner {
                 BigDecimal volume = BigDecimal.valueOf(10 + random.nextDouble() * 90).setScale(2, RoundingMode.HALF_UP);
 
                 MarketTick tick = new MarketTick(
-                        Instant.now().toString(),
+                        Instant.now().toEpochMilli(),
                         symbol,
                         formattedPrice,
                         volume
                 );
 
-                kafkaTemplate.send("market.ticker", symbol, tick);
+                kafkaTemplate.send("market.ticks", symbol, tick);
             }
             Thread.sleep(delayMs);
         }
@@ -76,7 +80,7 @@ class TickPublisher implements CommandLineRunner {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MarketTick {
-        private String timestamp;
+        private long timestamp;
         private String symbol;
         private BigDecimal price;
         private BigDecimal volume;

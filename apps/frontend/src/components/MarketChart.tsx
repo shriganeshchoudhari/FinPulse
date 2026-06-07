@@ -49,12 +49,16 @@ const VirtualizedList = ({
   );
 };
 
-const MarketChart: React.FC = () => {
+interface MarketChartProps {
+  symbol?: string;
+}
+
+const MarketChart: React.FC<MarketChartProps> = ({ symbol: propSymbol }) => {
   const { marketData, latestPrices } = useStore();
   
-  // Default to BTC/USD if available, otherwise just pick the first key
-  const symbol = "BTC/USD";
-  const data = marketData[symbol] || [];
+  // Use prop symbol if provided, otherwise default to BTC/USD
+  const symbol = propSymbol || "BTC/USD";
+  const data = marketData[symbol] || marketData[Object.keys(marketData)[0]] || [];
   const currentPrice = latestPrices[symbol] || 0.0;
 
   // Render a single row in the virtualized list
@@ -64,7 +68,7 @@ const MarketChart: React.FC = () => {
     if (!tick) return null;
     
     return (
-      <div style={{ 
+      <div key={index} style={{ 
         ...style, 
         display: 'flex', 
         justifyContent: 'space-between', 

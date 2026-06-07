@@ -31,6 +31,8 @@ public class User {
     @Column(name = "kyc_status")
     private String kycStatus; // PENDING, APPROVED, REJECTED
     
+    private String role; // ROLE_USER, ROLE_ANALYST, ROLE_AUDITOR, ROLE_ADMIN
+    
     @Column(name = "created_at")
     private Instant createdAt;
 }

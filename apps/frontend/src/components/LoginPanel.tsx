@@ -1,108 +1,251 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { authService } from '../services/api';
-import { ShieldCheck, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const LoginPanel: React.FC = () => {
-  const { setToken, setUserId } = useStore();
-  const [isLogin, setIsLogin] = useState(true);
+  const { setToken, setUserId, setRole } = useStore();
+  const [tab, setTab] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const decodeAndApplyToken = (token: string) => {
+    setToken(token);
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const extractedUserId =
+        payload.userId || payload.user_id || payload.sub || '00000000-0000-0000-0000-000000000001';
+      setUserId(extractedUserId);
+      const extractedRole = payload.role || payload.roles?.[0] || 'ROLE_USER';
+      setRole(extractedRole);
+    } catch {
+      setUserId('00000000-0000-0000-0000-000000000001');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username || !password) { setError('Please fill in all required fields.'); return; }
     setError('');
     setIsSubmitting(true);
-    
     try {
-      if (isLogin) {
+      if (tab === 'login') {
         const data = await authService.login(username, password);
-        setToken(data.token);
-        // We'll decode JWT to get userId in a real app, mock it for now on login success
-        setUserId(data.token ? '00000000-0000-0000-0000-000000000001' : null);
+        decodeAndApplyToken(data.token || data.accessToken);
       } else {
+        if (!email) { setError('Please enter your email address.'); setIsSubmitting(false); return; }
         const data = await authService.register(username, email, password);
-        setToken(data.token);
-        setUserId(data.token ? '00000000-0000-0000-0000-000000000001' : null);
+        decodeAndApplyToken(data.token || data.accessToken);
       }
     } catch (err: any) {
-      setError(err.response?.status === 401 ? 'Invalid credentials' : 'An error occurred');
+      if (err.response?.status === 401) setError('Invalid credentials');
+      else if (err.response?.status === 409) setError('Username already taken. Please choose another.');
+      else setError(err.response?.data?.message || 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="glass-panel" style={{ maxWidth: '400px', margin: '100px auto', display: 'flex', flexDirection: 'column' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-        <ShieldCheck size={28} color="var(--accent-blue)" />
-        {isLogin ? 'Secure Login' : 'Create Account'}
+    <div style={{ width: '100%', maxWidth: '400px' }} className="glass-panel">
+      {/* Title */}
+      <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', color: 'var(--text-primary)' }}>
+        <ShieldCheck size={24} color="var(--accent-blue)" />
+        {tab === 'login' ? 'Secure Login' : 'Create Account'}
       </h2>
-      
+
+      {/* Tab Bar */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid var(--glass-border)',
+        marginBottom: '28px',
+      }}>
+        <div
+          role="tab"
+          id="tab-login"
+          onClick={() => { setTab('login'); setError(''); }}
+          style={{
+            flex: 1,
+            padding: '12px',
+            background: 'none',
+            border: 'none',
+            borderBottom: tab === 'login' ? '2px solid var(--accent-blue)' : '2px solid transparent',
+            marginBottom: '-1px',
+            color: tab === 'login' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease',
+            fontFamily: 'Inter, sans-serif',
+          }}
+        >
+          <LogIn size={15} />Sign In
+        </div>
+        <div
+          role="tab"
+          id="tab-register"
+          onClick={() => { setTab('register'); setError(''); }}
+          style={{
+            flex: 1,
+            padding: '12px',
+            background: 'none',
+            border: 'none',
+            borderBottom: tab === 'register' ? '2px solid var(--accent-blue)' : '2px solid transparent',
+            marginBottom: '-1px',
+            color: tab === 'register' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease',
+            fontFamily: 'Inter, sans-serif',
+          }}
+        >
+          <UserPlus size={15} />Register
+        </div>
+      </div>
+
       {error && (
-        <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid var(--accent-red)' }}>
-          {error}
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          color: '#fca5a5',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          fontSize: '13px',
+          border: '1px solid rgba(239,68,68,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <span>⚠ </span><span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div className="input-group">
-          <label className="input-label">Username</label>
-          <input 
-            type="text" 
-            className="input-field" 
-            value={username} 
-            onChange={(e) => setUsername(e.target.value)}
-            required
+        <div>
+          <label htmlFor="fp-username" style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+            Username
+          </label>
+          <input
+            id="fp-username"
+            type="text"
+            className="input-field"
+            placeholder="Enter your username"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            autoFocus
+            autoComplete="username"
           />
         </div>
-        
-        {!isLogin && (
-          <div className="input-group">
-            <label className="input-label">Email</label>
-            <input 
-              type="email" 
-              className="input-field" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)}
-              required
+
+        {tab === 'register' && (
+          <div>
+            <label htmlFor="fp-email" style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              Email
+            </label>
+            <input
+              id="fp-email"
+              type="email"
+              className="input-field"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
             />
           </div>
         )}
-        
-        <div className="input-group">
-          <label className="input-label">Password</label>
-          <input 
-            type="password" 
-            className="input-field" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+
+        <div>
+          <label htmlFor="fp-password" style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+            Password
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              id="fp-password"
+              type={showPassword ? 'text' : 'password'}
+              className="input-field"
+              placeholder="Enter your password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={{ paddingRight: '44px' }}
+              autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer',
+                padding: '0', display: 'flex', alignItems: 'center',
+              }}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
-        
-        <button 
-          type="submit" 
-          className="btn btn-buy" 
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px' }}
+
+        <button
+          id="fp-submit"
+          type="submit"
           disabled={isSubmitting}
+          style={{
+            marginTop: '8px',
+            padding: '14px',
+            background: isSubmitting
+              ? 'rgba(59,130,246,0.4)'
+              : 'linear-gradient(135deg, var(--accent-blue), #2563eb)',
+            border: 'none',
+            borderRadius: '10px',
+            color: 'white',
+            fontSize: '15px',
+            fontWeight: 700,
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontFamily: 'Inter, sans-serif',
+            boxShadow: isSubmitting ? 'none' : '0 4px 20px rgba(59,130,246,0.4)',
+            transition: 'all 0.25s ease',
+          }}
         >
-          {isLogin ? <LogIn size={20} /> : <UserPlus size={20} />}
-          {isSubmitting ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+          {isSubmitting ? (
+            'Processing...'
+          ) : tab === 'login' ? (
+            <><LogIn size={18} />Sign In</>
+          ) : (
+            <><UserPlus size={18} />Sign Up</>
+          )}
         </button>
       </form>
-      
-      <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-        {isLogin ? "Don't have an account? " : "Already have an account? "}
-        <button 
-          onClick={() => setIsLogin(!isLogin)}
-          style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          {isLogin ? 'Register' : 'Log in'}
-        </button>
+
+      {/* Security Footer */}
+      <div style={{
+        marginTop: '24px',
+        padding: '14px 16px',
+        background: 'rgba(59,130,246,0.05)',
+        borderRadius: '8px',
+        border: '1px solid rgba(59,130,246,0.12)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+      }}>
+        <ShieldCheck size={16} color="var(--accent-blue)" style={{ flexShrink: 0, marginTop: 1 }} />
+        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Secured with JWT + Redis token revocation. Refresh tokens stored in HttpOnly cookies.
+        </span>
       </div>
     </div>
   );

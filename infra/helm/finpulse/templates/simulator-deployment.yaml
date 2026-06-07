@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finpulse-market-simulator
+  labels:
+    app: finpulse-market-simulator
+spec:
+  replicas: {{ .Values.simulator.replicaCount }}
+  selector:
+    matchLabels:
+      app: finpulse-market-simulator
+  template:
+    metadata:
+      labels:
+        app: finpulse-market-simulator
+    spec:
+      containers:
+        - name: simulator
+          image: "{{ .Values.simulator.image.repository }}:{{ .Values.simulator.image.tag }}"
+          imagePullPolicy: {{ .Values.simulator.image.pullPolicy }}
+          env:
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "{{ .Values.backend.config.kafkaServers }}"
+          resources:
+            {{- toYaml .Values.simulator.resources | nindent 12 }}
